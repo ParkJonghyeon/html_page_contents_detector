@@ -10,7 +10,7 @@ import codecs
 import shutil
 
 
-FILTERING_WORD_NUM = 1
+FILTERING_WORD_NUM = 5
 tokenizer = RegexpTokenizer(r'\w+')
 
 # html에서 title과 text의 언어 식별 후, 언어에 해당하는 stop word 적용
@@ -31,25 +31,28 @@ def tokenize_and_stopword(text):
 
 
 # html에서 텍스트 추출을 위한 함수
-def tag_visible(element):
-    if element.parent.name in ['style','script']:
-        return False
-    if re.match('<!--.*-->', str(element.encode('utf-8'))):
-        return False
-    return True
-
-
-# html에서 텍스트 추출을 위한 함수
 def text_only_from_html(html_text):
     soup = BeautifulSoup(html_text, 'html.parser')
-    texts = soup.findAll(text=True)
-    visible_texts = filter(tag_visible, texts)
-    texts = " ".join(t.strip() for t in visible_texts)
+    # html 내부의 visible 텍스트를 모두 추출
+    for script in soup(["script", "style"]):
+        script.extract()
+    texts = soup.get_text()
+    # meta 데이터에서 콘텐츠 판별에 사용 가능한 데이터를 추출
     metas = soup.findAll("meta")
     for meta in metas:
-        meta_cont = meta.get("content")
-        if meta_cont is not None:
-            texts += meta.get("content")
+        if meta.get("name") in ["description", "keywords"]:
+            try:
+                meta_data = meta.get("content")
+                texts += ' ' + meta_data
+            except TypeError:
+                meta_data = meta.get("value")
+                texts += ' ' + meta_data
+    # img 태그의 alt 텍스트를 통해 이미지 콘텐츠 유추 시도
+    imgs = soup.findAll("img")
+    for img in imgs:
+        if 'alt' in img.attrs.keys():
+            if len(img['alt']) > 1:
+                texts += ' ' + img['alt']
     return tokenize_and_stopword(texts)
 
 
@@ -61,7 +64,7 @@ def text_clensing(text, filtering_word_num):
     pattern_complex_num_2 = re.compile('[A-Za-z]+[0-9]+')
     # word에서 bitcoin 주소 패턴 제거
     pattern_bitcoin = re.compile("[A-Za-z0-9]{30,80}")
-    replace_word_list = ['(',')','[',']','{','}','/','|','<','>',':',',','=','_','-','+','*','!','?','\"','\'']
+    replace_word_list = ['(',')','[',']','{','}','/','|','<','>',':',',','=','_','-','+','*','!','?','\"','\'','\n','\t']
     for replace_word in replace_word_list:
         text = replacing(text, replace_word)
     orig_word = text.split(' ')
@@ -149,9 +152,9 @@ def input_pred(inputfile_route):
 # 테스트용 메소드
 def testing_method(contents_name):
     pred_accurate = 0
-    #route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
-#    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
-    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/adult_tmp/'
+    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
+    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
+#    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/adult_tmp/'
     inputfile_route_list=os.listdir(route)
     for idx in range(len(inputfile_route_list)):
         inputfile_route_list[idx] = route + inputfile_route_list[idx]
@@ -179,13 +182,14 @@ dir_list.remove('auto_labeling.txt')
 dir_list.remove('auto_labeling_list.txt')
 dir_list.remove('hs_freqency.py')
 dir_list.remove('README.md')
+dir_list.remove('.git')
 #dir_list.remove('legal')
 
 
 #documents = read_text_data(dir_list, 1)
 #extracted_text_out(documents)
 documents = read_text_data(dir_list, 2)
-documents.remove(documents[7]
+#documents.remove(documents[7])
 
 
 # 예측 모델 생성
