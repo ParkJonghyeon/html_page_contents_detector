@@ -1,20 +1,20 @@
+import os, re, codecs, shutil, nltk, string, numpy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from stop_words import get_stop_words
-import re
 from bs4 import BeautifulSoup
-import nltk, string, numpy
-import os
 from polyglot.detect import Detector
 from nltk.tokenize import RegexpTokenizer
-import codecs
-import shutil
 
 
 FILTERING_WORD_NUM = 5
 tokenizer = RegexpTokenizer(r'\w+')
 
-# html에서 title과 text의 언어 식별 후, 언어에 해당하는 stop word 적용
-# 텍스트와 타이틀을 통합한 하나의 문자열을 반환
+DATA_DIR = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'
+DIR_LIST = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
+'gamble', 'hacking_cyber_attack', 'legal', 'weapon_hitman']
+
+
+# html에서 추출한 텍스트의 언어 식별 후, 적당한 stop word 적용 후 토큰화하여 반환
 def tokenize_and_stopword(text):
     try:
         text = text.lower()
@@ -30,7 +30,7 @@ def tokenize_and_stopword(text):
     return text
 
 
-# html에서 텍스트 추출을 위한 함수
+# html에서 텍스트 추출하고 토큰화 함수 결과 값 반환
 def text_only_from_html(html_text):
     soup = BeautifulSoup(html_text, 'html.parser')
     # html 내부의 visible 텍스트를 모두 추출
@@ -47,7 +47,7 @@ def text_only_from_html(html_text):
             except TypeError:
                 meta_data = meta.get("value")
                 texts += ' ' + meta_data
-    # img 태그의 alt 텍스트를 통해 이미지 콘텐츠 유추 시도
+    # img 태그의 alt 텍스트를 통해 이미지 콘텐츠 유추
     imgs = soup.findAll("img")
     for img in imgs:
         if 'alt' in img.attrs.keys():
@@ -56,7 +56,22 @@ def text_only_from_html(html_text):
     return tokenize_and_stopword(texts)
 
 
-# text clensing
+# 각 디렉토리의 html 파일을 읽어서 토큰들의 문자열로 컨텐츠의 모든 html 텍스트를 통합
+def read_all_html(dir_route):
+    file_list = os.listdir(dir_route)
+    total_text = ''
+    for file_name in file_list:
+        with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
+            total_text = total_text + text_only_from_html(html_text.read())
+    return total_text
+
+
+# text clensing 과정에서 특수문자 제거
+def replacing(target, replace_word):
+    return target.replace(replace_word, ' ')
+
+
+# text clensing하여 통합 된 모든 html 텍스트를 정리
 def text_clensing(text, filtering_word_num):
     # word에서 숫자값 제거
     pattern_only_num = re.compile('[0-9]+')
@@ -90,39 +105,26 @@ def text_clensing(text, filtering_word_num):
     return return_word
 
 
-# text clensing_특수문자 제거
-def replacing(target, replace_word):
-    return target.replace(replace_word, ' ')
+# clensing까지 완료 된 텍스트들의 output을 생성
+def extracted_text_out(extract_target_documnets):
+    for doc_index in range(len(extract_target_documnets)):
+        with codecs.open(DATA_DIR+'0_Training/'+DIR_LIST[doc_index]+'_extract_data.txt','w', encoding='utf-8') as extract_data:
+            extract_data.write(extract_target_documnets[doc_index])
 
 
-# 각 디렉토리의 html을 읽어서 하나의 문자열로 모든 텍스트를 통합
-def read_all_html(dir_route):
-    file_list = os.listdir(dir_route)
-    total_text = ''
-    for file_name in file_list:
-#    for file_idx in range(0,7):
-        with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
-#        with codecs.open(dir_route+file_list[file_idx],'r', encoding='utf-8') as html_text:
-            total_text = total_text + text_only_from_html(html_text.read())
-    return total_text
-
-
-# 각 디렉토리의 html을 읽어서 하나의 문자열로 모든 텍스트를 통합
-def extracted_text_out(documnets):
-    for doc_index in range(len(dir_list)):
-        with codecs.open(data_dir+'0_Training/'+dir_list[doc_index]+'_extract_data.txt','w', encoding='utf-8') as extract_data:
-            extract_data.write(documents[doc_index])
-
-
-# 모델링에 사용할 documents 리스트 작성
-def read_text_data(dir_list, method):
-    #return list
+# 모델에 사용할 documents 리스트 작성
+def read_text_data(method):
     return_documents = []
-    # method1 dir의 모든 html을 읽어들여서 documents 리스트 생성하고 모델링 제작
+    # method1 dir의 모든 html을 읽어들여서 documents 리스트 생성하고 모델링 제작. 학습용 데이터의 초기 생성시 수행
     if method == 1:
-        for dir_name in dir_list:
-            dir_route = data_dir + dir_name
-            return_documents.append( text_clensing(read_all_html(dir_route+'/'), FILTERING_WORD_NUM) )
+        tmp_doc_list = []
+        for dir_name in DIR_LIST:
+            dir_route = DATA_DIR + dir_name
+            tmp_data = read_all_html(dir_route+'/')
+            tmp_doc_list.append(tmp_data)
+            return_documents.append( text_clensing(tmp_data, FILTERING_WORD_NUM) )
+        # clensing이 되지 않은 원본 텍스트를 저장. method2에서 읽고 필요에 맞추어 clensing하여 사용
+        extracted_text_out(tmp_doc_list)
         return return_documents
     # method2 기존에 읽었던 html의 텍스트들을 파일로 만들어 읽어들인 후 바로 모델링으로 제작
     elif method == 2:
@@ -134,6 +136,23 @@ def read_text_data(dir_list, method):
             with codecs.open(text_route,'r',encoding='utf-8') as data:
                 return_documents.append(text_clensing(data.read(), FILTERING_WORD_NUM))
         return return_documents
+
+
+# model list
+# LogisticRegression / Naive_bayes / 
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+
+
+# model 생성 함수. 필요에 따라 import 후 해당 모델 생성 분기 추가
+def make_model(x_input, y_input, model_name):
+    if model_name == "logistic":
+        model = LogisticRegression()
+        model.fit(X, Y)
+    elif model_name == "naive":
+        model = GaussianNB()
+        modelNB.fit(X.toarray(),Y)
+    return model
 
 
 # 예측 함수. 예측하려는 문서파일의 경로를 입력받아 결과를 출력.
@@ -150,9 +169,12 @@ def input_pred(inputfile_route):
 
 
 # 테스트용 메소드
-def testing_method(contents_name):
+def testing_method(contents_name, mode):
     pred_accurate = 0
-    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
+    if mode == 'all':
+    else :
+
+#    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
     route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
 #    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/adult_tmp/'
     inputfile_route_list=os.listdir(route)
@@ -167,33 +189,15 @@ def testing_method(contents_name):
     print(pred_accurate/len(inputfile_route_list))
 
 
-data_dir = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'
-dir_list = os.listdir(data_dir)
-dir_list.sort()
-dir_list.remove('0_Test')
-dir_list.remove('0_Training')
-dir_list.remove('0_detail')
-dir_list.remove('unknown')
-dir_list.remove('tfidf_lr.py')
-dir_list.remove('tf-idf_wc.py')
-dir_list.remove('labeling_rule.txt')
-dir_list.remove('memo.txt')
-dir_list.remove('auto_labeling.txt')
-dir_list.remove('auto_labeling_list.txt')
-dir_list.remove('hs_freqency.py')
-dir_list.remove('README.md')
-dir_list.remove('.git')
-#dir_list.remove('legal')
 
 
-#documents = read_text_data(dir_list, 1)
-#extracted_text_out(documents)
-documents = read_text_data(dir_list, 2)
+
+#documents = read_text_data(1)
+documents = read_text_data(2)
 #documents.remove(documents[7])
 
 
 # 예측 모델 생성
-#en_stop = get_stop_words('en')
 all_stop = ['co', 'com', 'org', 'www', 'net', 'onion', 'php', 'html', 'txt', 'png', 'jpg', 'gif', 'onionadd', 'btcadd', 'ipadd']
 all_stop += get_stop_words('en') + get_stop_words('french') + get_stop_words('german') + get_stop_words('italian') + get_stop_words('spanish') + get_stop_words('russian') + get_stop_words('arabic')
 
@@ -202,57 +206,23 @@ X = vect.fit_transform(documents)
 # X.todense()
 # sentences에는 각 서비스 분류의 문서들이 포함
 # 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
-Y = dir_list
+Y = DIR_LIST
 
 
-# LR과 tfidf 예측 모델
-from sklearn.linear_model import LogisticRegression
-model = LogisticRegression()
-model.fit(X, Y)
+model = make_model(X,Y,'logistic')
+#model = make_model(X,Y,'naive')
 
 
-for dir_name in dir_list:
+for dir_name in DIR_LIST:
     os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+dir_name)
 
 
 #test all
-for dir_name in dir_list:
+for dir_name in DIR_LIST:
     testing_method(dir_name)
 
 
 #test one
-testing_method(dir_list[0])
+testing_method(DIR_LIST[0])
 
 
-'''
-# NB와 tfidf 예측 모델
-from sklearn.naive_bayes import GaussianNB
-modelNB = GaussianNB()
-modelNB.fit(X.toarray(),Y)
-
-
-def input_pred_NB(inputfile_route):
-    with codecs.open(inputfile_route, 'r', encoding='utf-8') as input_file:
-        pred_text = text_only_from_html(input_file.read())
-    # vect에서 토큰화, stop word, lower 등 적용되고 있음
-    X_pred = vect.transform([pred_text]).toarray()
-    y_pred = model.predict(X_pred)
-    print(y_pred)
-
-
-input_pred('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/black_market/norabizt5qqxefxy.html')
-input_pred_NB('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/black_market/norabizt5qqxefxy.html')
-
-
-# hashing과 LR 모델
-# Hashing == Count vectorizer
-from sklearn.feature_extraction.text import HashingVectorizer
-vect = HashingVectorizer(n_features=200)
-X = vectorizer.transform(documents)
-
-from sklearn.linear_model import LogisticRegression
-model = LogisticRegression()
-model.fit(X, dir_list)
-
-input_pred('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/black_market/norabizt5qqxefxy.html')
-'''
