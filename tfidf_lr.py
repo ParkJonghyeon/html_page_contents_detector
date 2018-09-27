@@ -143,6 +143,8 @@ def read_text_data(method):
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 
 
 # model 생성 함수. 필요에 따라 import 후 해당 모델 생성 분기 추가
@@ -155,6 +157,12 @@ def make_model(x_input, y_input):
         return_model.fit(x_input.toarray(), y_input)
     elif USE_MODEL == 'decision':
         return_model = DecisionTreeClassifier()
+        return_model.fit(x_input, y_input)
+    elif USE_MODEL == 'knn':
+        return_model = KNeighborsClassifier(n_neighbors=KNN_NEIGHBOR)
+        return_model.fit(x_input, y_input)
+    elif USE_MODEL == 'svm':
+        return_model = SVC(gamma='auto')
         return_model.fit(x_input, y_input)
     return return_model
 
@@ -217,6 +225,8 @@ Y = DIR_LIST
 USE_MODEL = 'logistic'
 #USE_MODEL = 'naive'
 #USE_MODEL = 'decision'
+#USE_MODEL = 'svm'
+KNN_NEIGHBOR = 3
 model = make_model(X,Y)
 
 
