@@ -142,29 +142,37 @@ def read_text_data(method):
 # LogisticRegression / Naive_bayes / 
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
 
 
 # model 생성 함수. 필요에 따라 import 후 해당 모델 생성 분기 추가
-def make_model(x_input, y_input, model_name):
-    if model_name == "logistic":
-        model = LogisticRegression()
-        model.fit(X, Y)
-    elif model_name == "naive":
-        model = GaussianNB()
-        modelNB.fit(X.toarray(),Y)
-    return model
+def make_model(x_input, y_input):
+    if USE_MODEL == 'logistic':
+        return_model = LogisticRegression()
+        return_model.fit(x_input, y_input)
+    elif USE_MODEL == 'naive':
+        return_model = GaussianNB()
+        return_model.fit(x_input.toarray(), y_input)
+    elif USE_MODEL == 'decision':
+        return_model = DecisionTreeClassifier()
+        return_model.fit(x_input, y_input)
+    return return_model
 
 
 # 예측 함수. 예측하려는 문서파일의 경로를 입력받아 결과를 출력.
 # shutil로 문서의 복사본을 지정위치로 이동할 수 있음
-def input_pred(inputfile_route):
+def input_pred(inputfile_route, mode):
     with codecs.open(inputfile_route, 'r', encoding='utf-8') as input_file:
         pred_text = text_only_from_html(input_file.read())
         pred_text = text_clensing(pred_text, FILTERING_WORD_NUM)
     # vect에서 토큰화, stop word, lower 등 적용되고 있음
     X_pred = vect.transform([pred_text])
-    y_pred = model.predict(X_pred)
-    #shutil.copy(inputfile_route, '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+y_pred[0])
+    if USE_MODEL == 'naive':
+        y_pred = model.predict(X_pred.toarray())
+    else:
+        y_pred = model.predict(X_pred)
+    if mode == 'all':
+        shutil.copy(inputfile_route, '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+y_pred[0])
     return y_pred[0]
 
 
@@ -172,30 +180,28 @@ def input_pred(inputfile_route):
 def testing_method(contents_name, mode):
     pred_accurate = 0
     if mode == 'all':
+        route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
+        inputfile_route_list=os.listdir(route)
+        for idx in range(len(inputfile_route_list)):
+            inputfile_route_list[idx] = route + inputfile_route_list[idx]
+        for inputfile_route in inputfile_route_list:
+            pred_result = input_pred(inputfile_route, mode)
     else :
-
-#    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
-    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
-#    route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/adult_tmp/'
-    inputfile_route_list=os.listdir(route)
-    for idx in range(len(inputfile_route_list)):
-        inputfile_route_list[idx] = route + inputfile_route_list[idx]
-    for inputfile_route in inputfile_route_list:
-        pred_result = input_pred(inputfile_route)
-        if pred_result == contents_name:
-            pred_accurate += 1
-    print(contents_name)
-    print(pred_accurate)
-    print(pred_accurate/len(inputfile_route_list))
-
-
-
+        route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
+        inputfile_route_list=os.listdir(route)
+        for idx in range(len(inputfile_route_list)):
+            inputfile_route_list[idx] = route + inputfile_route_list[idx]
+        for inputfile_route in inputfile_route_list:
+            pred_result = input_pred(inputfile_route, mode)
+            if pred_result == contents_name:
+                pred_accurate += 1
+        print(contents_name)
+        print(pred_accurate)
+        print(pred_accurate/len(inputfile_route_list))
 
 
 #documents = read_text_data(1)
 documents = read_text_data(2)
-#documents.remove(documents[7])
-
 
 # 예측 모델 생성
 all_stop = ['co', 'com', 'org', 'www', 'net', 'onion', 'php', 'html', 'txt', 'png', 'jpg', 'gif', 'onionadd', 'btcadd', 'ipadd']
@@ -208,21 +214,19 @@ X = vect.fit_transform(documents)
 # 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
 Y = DIR_LIST
 
+USE_MODEL = 'logistic'
+#USE_MODEL = 'naive'
+#USE_MODEL = 'decision'
+model = make_model(X,Y)
 
-model = make_model(X,Y,'logistic')
-#model = make_model(X,Y,'naive')
+
+#test all labeled html
+for dir_name in DIR_LIST:
+    testing_method(dir_name, 'single')
 
 
+#test all unlabeled html
 for dir_name in DIR_LIST:
     os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+dir_name)
 
-
-#test all
-for dir_name in DIR_LIST:
-    testing_method(dir_name)
-
-
-#test one
-testing_method(DIR_LIST[0])
-
-
+testing_method(dir_name, 'all')
