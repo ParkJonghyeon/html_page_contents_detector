@@ -19,7 +19,8 @@ def tokenize_and_stopword(text):
     try:
         text = text.lower()
         detector = Detector(text, quiet=True)
-        stop_list = get_stop_words(detector.language.code)
+        stop_list = all_stop
+        #stop_list = get_stop_words(detector.language.code)
         tokens = tokenizer.tokenize(text)
         text_tokens = [i for i in tokens if not i in stop_list]
         text = " ".join(t.strip() for t in text_tokens)
@@ -129,10 +130,9 @@ def read_text_data(method):
     # method2 기존에 읽었던 html의 텍스트들을 파일로 만들어 읽어들인 후 바로 모델링으로 제작
     elif method == 2:
         extracted_text_dir = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Training/'
-        text_list = os.listdir(extracted_text_dir)
-        text_list.sort()
+        text_list = DIR_LIST
         for text_name in text_list:
-            text_route = extracted_text_dir+text_name
+            text_route = extracted_text_dir+text_name+'_extract_data.txt'
             with codecs.open(text_route,'r',encoding='utf-8') as data:
                 return_documents.append(text_clensing(data.read(), FILTERING_WORD_NUM))
         return return_documents
@@ -145,6 +145,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 
 
 # model 생성 함수. 필요에 따라 import 후 해당 모델 생성 분기 추가
@@ -163,6 +164,9 @@ def make_model(x_input, y_input):
         return_model.fit(x_input, y_input)
     elif USE_MODEL == 'svm':
         return_model = SVC(gamma='auto')
+        return_model.fit(x_input, y_input)
+    elif USE_MODEL == 'random':
+        return_model = RandomForestClassifier(n_estimators=100, max_depth=20, random_state=0)
         return_model.fit(x_input, y_input)
     return return_model
 
@@ -213,7 +217,8 @@ documents = read_text_data(2)
 
 # 예측 모델 생성
 all_stop = ['co', 'com', 'org', 'www', 'net', 'onion', 'php', 'html', 'txt', 'png', 'jpg', 'gif', 'onionadd', 'btcadd', 'ipadd']
-all_stop += get_stop_words('en') + get_stop_words('french') + get_stop_words('german') + get_stop_words('italian') + get_stop_words('spanish') + get_stop_words('russian') + get_stop_words('arabic')
+language_names = ['繁體中文', '中文', 'deutsch', 'čeština', 'ελληνικά', 'english', 'español', 'français', '日本語', 'italiano', 'magyar', 'nederlands', 'norsk', 'فارسی', 'العربية', 'polski', 'português', 'română', 'pусский', 'slovenski', 'shqip', 'svenska', 'türkçe']
+all_stop += get_stop_words('en') + get_stop_words('french') + get_stop_words('german') + get_stop_words('italian') + get_stop_words('spanish') + get_stop_words('russian') + get_stop_words('arabic') + language_names
 
 vect = TfidfVectorizer(token_pattern=r'\w+', lowercase=True, stop_words=all_stop)
 X = vect.fit_transform(documents)
@@ -225,7 +230,8 @@ Y = DIR_LIST
 USE_MODEL = 'logistic'
 #USE_MODEL = 'naive'
 #USE_MODEL = 'decision'
-#USE_MODEL = 'svm'
+USE_MODEL = 'svm'
+#USE_MODEL = 'random'
 KNN_NEIGHBOR = 3
 model = make_model(X,Y)
 
@@ -239,4 +245,4 @@ for dir_name in DIR_LIST:
 for dir_name in DIR_LIST:
     os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+dir_name)
 
-testing_method(dir_name, 'all')
+testing_method(DIR_LIST, 'all')
