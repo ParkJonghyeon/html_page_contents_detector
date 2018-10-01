@@ -212,13 +212,14 @@ def testing_method(contents_name, mode):
         print(pred_accurate/len(inputfile_route_list))
 
 
-#documents = read_text_data(1)
-documents = read_text_data(2)
-
 # 예측 모델 생성
 all_stop = ['co', 'com', 'org', 'www', 'net', 'onion', 'php', 'html', 'txt', 'png', 'jpg', 'gif', 'onionadd', 'btcadd', 'ipadd']
 language_names = ['繁體中文', '中文', 'deutsch', 'čeština', 'ελληνικά', 'english', 'español', 'français', '日本語', 'italiano', 'magyar', 'nederlands', 'norsk', 'فارسی', 'العربية', 'polski', 'português', 'română', 'pусский', 'slovenski', 'shqip', 'svenska', 'türkçe']
 all_stop += get_stop_words('en') + get_stop_words('french') + get_stop_words('german') + get_stop_words('italian') + get_stop_words('spanish') + get_stop_words('russian') + get_stop_words('arabic') + language_names
+
+documents = read_text_data(1)
+#documents = read_text_data(2)
+
 
 vect = TfidfVectorizer(token_pattern=r'\w+', lowercase=True, stop_words=all_stop)
 X = vect.fit_transform(documents)
@@ -230,7 +231,7 @@ Y = DIR_LIST
 USE_MODEL = 'logistic'
 #USE_MODEL = 'naive'
 #USE_MODEL = 'decision'
-USE_MODEL = 'svm'
+#USE_MODEL = 'svm'
 #USE_MODEL = 'random'
 KNN_NEIGHBOR = 3
 model = make_model(X,Y)
@@ -246,3 +247,56 @@ for dir_name in DIR_LIST:
     os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+dir_name)
 
 testing_method(DIR_LIST, 'all')
+
+
+LABELED_HTML = {}
+
+for dir_name in DIR_LIST:
+    tmp = os.listdir(dir_name)
+    for key in tmp:
+        LABELED_HTML[DATA_DIR+dir_name+'/'+key]=dir_name
+
+TRAINING_DATA_LIST = []
+
+
+def read_text_data_for_training(read_file_num):
+    return_documents = []
+    tmp_doc_list = []
+    for dir_name in DIR_LIST:
+        dir_route = DATA_DIR + dir_name
+        tmp_data = read_training_html(dir_route+'/', read_file_num)
+        tmp_doc_list.append(tmp_data)
+        return_documents.append( text_clensing(tmp_data, FILTERING_WORD_NUM) )
+    # clensing이 되지 않은 원본 텍스트를 저장. method2에서 읽고 필요에 맞추어 clensing하여 사용
+    extracted_text_out(tmp_doc_list)
+    return return_documents
+
+
+def read_training_html(dir_route, read_file_num):
+    file_list = os.listdir(dir_route)
+    total_text = ''
+    for training_data in file_list[read_file_num:]:
+        TRAINING_DATA_LIST.append(training_data)
+    for file_name in file_list[:read_file_num]:
+        with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
+            total_text = total_text + text_only_from_html(html_text.read())
+    return total_text
+
+
+documents = read_text_data_for_training(15)
+
+vect = TfidfVectorizer(token_pattern=r'\w+', lowercase=True, stop_words=all_stop)
+X = vect.fit_transform(documents)
+# X.todense()
+# sentences에는 각 서비스 분류의 문서들이 포함
+# 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
+Y = DIR_LIST
+
+USE_MODEL = 'logistic'
+#USE_MODEL = 'naive'
+#USE_MODEL = 'decision'
+#USE_MODEL = 'svm'
+#USE_MODEL = 'random'
+KNN_NEIGHBOR = 3
+model = make_model(X,Y)
+
