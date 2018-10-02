@@ -9,8 +9,9 @@ from nltk.tokenize import RegexpTokenizer
 FILTERING_WORD_NUM = 5
 tokenizer = RegexpTokenizer(r'\w+')
 
-DATA_DIR = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'
-DIR_LIST = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
+DATA_DIR = 'data_set/contents/'
+TEXT_DATA_DIR = 'data_set/all_contents_text/'
+CONTENTS_LIST = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
 'gamble', 'hacking_cyber_attack', 'legal', 'weapon_hitman']
 
 
@@ -109,7 +110,7 @@ def text_clensing(text, filtering_word_num):
 # clensing까지 완료 된 텍스트들의 output을 생성
 def extracted_text_out(extract_target_documnets):
     for doc_index in range(len(extract_target_documnets)):
-        with codecs.open(DATA_DIR+'0_Training/'+DIR_LIST[doc_index]+'_extract_data.txt','w', encoding='utf-8') as extract_data:
+        with codecs.open(TEXT_DATA_DIR+CONTENTS_LIST[doc_index]+'_extract_data.txt','w', encoding='utf-8') as extract_data:
             extract_data.write(extract_target_documnets[doc_index])
 
 
@@ -119,7 +120,7 @@ def read_text_data(method):
     # method1 dir의 모든 html을 읽어들여서 documents 리스트 생성하고 모델링 제작. 학습용 데이터의 초기 생성시 수행
     if method == 1:
         tmp_doc_list = []
-        for dir_name in DIR_LIST:
+        for dir_name in CONTENTS_LIST:
             dir_route = DATA_DIR + dir_name
             tmp_data = read_all_html(dir_route+'/')
             tmp_doc_list.append(tmp_data)
@@ -129,10 +130,8 @@ def read_text_data(method):
         return return_documents
     # method2 기존에 읽었던 html의 텍스트들을 파일로 만들어 읽어들인 후 바로 모델링으로 제작
     elif method == 2:
-        extracted_text_dir = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Training/'
-        text_list = DIR_LIST
-        for text_name in text_list:
-            text_route = extracted_text_dir+text_name+'_extract_data.txt'
+        for content_name in CONTENTS_LIST:
+            text_route = TEXT_DATA_DIR+content_name+'_extract_data.txt'
             with codecs.open(text_route,'r',encoding='utf-8') as data:
                 return_documents.append(text_clensing(data.read(), FILTERING_WORD_NUM))
         return return_documents
@@ -184,7 +183,7 @@ def input_pred(inputfile_route, mode):
     else:
         y_pred = model.predict(X_pred)
     if mode == 'all':
-        shutil.copy(inputfile_route, '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+y_pred[0])
+        shutil.copy(inputfile_route, 'data_set/auto_labeling/'+y_pred[0])
     return y_pred[0]
 
 
@@ -192,14 +191,14 @@ def input_pred(inputfile_route, mode):
 def testing_method(contents_name, mode):
     pred_accurate = 0
     if mode == 'all':
-        route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
+        route = '/media/lark/extra_storage/onion_link_set/html_171001_to_180327/unlabeled/'
         inputfile_route_list=os.listdir(route)
         for idx in range(len(inputfile_route_list)):
             inputfile_route_list[idx] = route + inputfile_route_list[idx]
         for inputfile_route in inputfile_route_list:
             pred_result = input_pred(inputfile_route, mode)
     else :
-        route='/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/'+contents_name+'/'
+        route = DATA_DIR+contents_name+'/'
         inputfile_route_list=os.listdir(route)
         for idx in range(len(inputfile_route_list)):
             inputfile_route_list[idx] = route + inputfile_route_list[idx]
@@ -226,7 +225,7 @@ X = vect.fit_transform(documents)
 # X.todense()
 # sentences에는 각 서비스 분류의 문서들이 포함
 # 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
-Y = DIR_LIST
+Y = CONTENTS_LIST
 
 USE_MODEL = 'logistic'
 #USE_MODEL = 'naive'
@@ -238,23 +237,23 @@ model = make_model(X,Y)
 
 
 #test all labeled html
-for dir_name in DIR_LIST:
-    testing_method(dir_name, 'single')
+for cont_name in CONTENTS_LIST:
+    testing_method(cont_name, 'single')
 
 
 #test all unlabeled html
-for dir_name in DIR_LIST:
-    os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+dir_name)
+for cont_name in CONTENTS_LIST:
+    os.mkdir('/media/lark/extra_storage/onion_link_set/html_171001_to_180327/training_html/0_Test/auto_labeling/'+cont_name)
 
-testing_method(DIR_LIST, 'all')
+testing_method(CONTENTS_LIST, 'all')
 
 
 LABELED_HTML = {}
 
-for dir_name in DIR_LIST:
-    tmp = os.listdir(dir_name)
+for cont_name in CONTENTS_LIST:
+    tmp = os.listdir(cont_name)
     for key in tmp:
-        LABELED_HTML[DATA_DIR+dir_name+'/'+key]=dir_name
+        LABELED_HTML[DATA_DIR+cont_name+'/'+key]=cont_name
 
 TRAINING_DATA_LIST = []
 
@@ -262,7 +261,7 @@ TRAINING_DATA_LIST = []
 def read_text_data_for_training(read_file_num):
     return_documents = []
     tmp_doc_list = []
-    for dir_name in DIR_LIST:
+    for dir_name in CONTENTS_LIST:
         dir_route = DATA_DIR + dir_name
         tmp_data = read_training_html(dir_route+'/', read_file_num)
         tmp_doc_list.append(tmp_data)
@@ -290,7 +289,7 @@ X = vect.fit_transform(documents)
 # X.todense()
 # sentences에는 각 서비스 분류의 문서들이 포함
 # 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
-Y = DIR_LIST
+Y = CONTENTS_LIST
 
 USE_MODEL = 'logistic'
 #USE_MODEL = 'naive'
