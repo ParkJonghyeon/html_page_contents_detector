@@ -1,5 +1,12 @@
-#contents html directory
-contents/
+#directory
+auto_labeling_test
+detail_contents
+
+#HS html file
+.html
+
+#HS text file
+.txt
 
 #test tf-idf files
 tf-idf_wc.py
