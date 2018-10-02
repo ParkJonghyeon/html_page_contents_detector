@@ -1,6 +1,6 @@
 #directory
-dataset/auto_labeling_test/*
-dataset/detail_contents/*
+dataset/auto_labeling_test
+dataset/detail_contents
 
 #HS html file
 data_set/contents/**/*.html
