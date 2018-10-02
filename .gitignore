@@ -3,10 +3,10 @@ auto_labeling_test
 detail_contents
 
 #HS html file
-.html
+*.html
 
 #HS text file
-.txt
+*.txt
 
 #test tf-idf files
 tf-idf_wc.py
