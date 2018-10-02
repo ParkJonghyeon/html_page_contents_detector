@@ -3,7 +3,7 @@ dataset/auto_labeling_test/*
 dataset/detail_contents/*
 
 #HS html file
-data_set/contents/*/*.html
+data_set/contents/**/*.html
 
 #HS text file
 data_set/all_contents_text/*.txt
