@@ -1,0 +1,6 @@
+#contents html directory
+contents/
+
+#test tf-idf files
+tf-idf_wc.py
+hs_frequency.py
