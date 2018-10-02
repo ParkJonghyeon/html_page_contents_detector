@@ -1,12 +1,12 @@
 #directory
-auto_labeling_test
-detail_contents
+dataset/auto_labeling_test/*
+dataset/detail_contents/*
 
 #HS html file
-*.html
+data_set/contents/*/*.html
 
 #HS text file
-*.txt
+data_set/all_contents_text/*.txt
 
 #test tf-idf files
 tf-idf_wc.py
