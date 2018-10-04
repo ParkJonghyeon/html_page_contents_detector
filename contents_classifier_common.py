@@ -11,7 +11,7 @@ OUTPUT_TEXT_NAME = '_extract_data.txt'
 
 # contents name list
 CONTENTS = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
-    'gamble', 'hacking_cyber_attack', 'legal', 'weapon_hitman']
+'gamble', 'hacking_cyber_attack', 'legal', 'weapon_hitman']
 
 
 # replace word list
@@ -26,10 +26,7 @@ LANGUAGES = ['繁體中文', '中文', 'deutsch', 'čeština', 'ελληνικά
     'english', 'español', 'français', '日本語', 'italiano', 'magyar', 
     'nederlands', 'norsk', 'فارسی', 'العربية', 'polski', 'português', 
     'română', 'pусский', 'slovenski', 'shqip', 'svenska', 'türkçe']
-ALL_STOP_WORD = DEFAULT_STOP_WORD + LANGUAGES + get_stop_words('en') 
-    + get_stop_words('french') + get_stop_words('german') 
-    + get_stop_words('italian') + get_stop_words('spanish') 
-    + get_stop_words('russian') + get_stop_words('arabic')
+ALL_STOP_WORD = DEFAULT_STOP_WORD + LANGUAGES + get_stop_words('en') + get_stop_words('french') + get_stop_words('german') + get_stop_words('italian') + get_stop_words('spanish') + get_stop_words('russian') + get_stop_words('arabic')
 
 
 # filtering word number
