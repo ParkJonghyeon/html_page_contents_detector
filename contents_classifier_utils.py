@@ -102,7 +102,8 @@ class ContentsClassifierUtils:
     # clensing까지 완료 된 텍스트들의 output을 생성
     def extracted_text_out(self, extract_target_documnets):
         for doc_index in range(len(extract_target_documnets)):
-            with codecs.open(common.TEXT_DATA_DIR+common.CONTENTS[doc_index]+'_extract_data.txt','w', encoding='utf-8') as extract_data:
+            with codecs.open(common.TEXT_DATA_DIR + common.CONTENTS[doc_index]
+                + common.OUTPUT_TEXT_NAME,'w', encoding='utf-8') as extract_data:
                 extract_data.write(extract_target_documnets[doc_index])
 
 

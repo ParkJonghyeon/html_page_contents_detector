@@ -1,4 +1,5 @@
 #directory
+__pycache__/
 dataset/auto_labeling_test
 dataset/detail_contents
 
