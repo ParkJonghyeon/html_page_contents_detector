@@ -1,6 +1,5 @@
 import codecs, os, nltk, re
 from bs4 import BeautifulSoup
-from polyglot.detect import Detector
 from nltk.tokenize import RegexpTokenizer
 import contents_classifier_common as common
 
@@ -13,15 +12,10 @@ class ContentsClassifierUtils:
 
     # html에서 추출한 텍스트의 언어 식별 후, 적당한 stop word 적용 후 토큰화하여 반환
     def tokenize_and_stopword(self, text):
-        try:
-            text = text.lower()
-            detector = Detector(text, quiet=True)
-            tokens = self.tokenizer.tokenize(text)
-            text_tokens = [i for i in tokens if not i in common.ALL_STOP_WORD]
-            text = " ".join(t.strip() for t in text_tokens)
-        except:
-            tokens = self.tokenizer.tokenize(text)
-            text_tokens = [i for i in tokens if not i in common.get_stop_words('en')]
+        text = text.lower()
+        tokens = self.tokenizer.tokenize(text)
+        text_tokens = [i for i in tokens if not i in common.ALL_STOP_WORD]
+        text = " ".join(t.strip() for t in text_tokens)
         return text
 
 
@@ -51,13 +45,18 @@ class ContentsClassifierUtils:
         return self.tokenize_and_stopword(texts)
 
 
-    # 각 디렉토리의 html 파일을 읽어서 토큰들의 문자열로 컨텐츠의 모든 html 텍스트를 통합
-    def read_all_html(self, dir_route):
-        file_list = os.listdir(dir_route)
+# 주어진 파일 경로의 html을 읽어 토큰들의 문자열로 반환
+    def read_html_to_text(self, target_file_route):
+        with codecs.open(target_file_route, 'r', encoding='utf-8') as target_file:
+            return_text = self.text_clensing( self.text_only_from_html(target_file.read()) )
+        return return_text
+
+
+    # 주어진 파일 경로들의 html을 읽어 토큰들의 문자열로 반환
+    def read_all_html(self, target_files_route_list):
         total_text = ''
-        for file_name in file_list:
-            with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
-                total_text = total_text + self.text_only_from_html(html_text.read())
+        for target_file in target_files_route_list:
+            total_text = total_text + self.read_html_to_text(target_file)
         return total_text
 
 
@@ -102,8 +101,7 @@ class ContentsClassifierUtils:
     # clensing까지 완료 된 텍스트들의 output을 생성
     def extracted_text_out(self, extract_target_documnets):
         for doc_index in range(len(extract_target_documnets)):
-            with codecs.open(common.TEXT_DATA_DIR + common.CONTENTS[doc_index]
-                + common.OUTPUT_TEXT_NAME,'w', encoding='utf-8') as extract_data:
+            with codecs.open(common.TEXT_DATA_DIR + common.CONTENTS[doc_index] + common.OUTPUT_TEXT_NAME,'w', encoding='utf-8') as extract_data:
                 extract_data.write(extract_target_documnets[doc_index])
 
 
@@ -111,18 +109,18 @@ class ContentsClassifierUtils:
     def read_text_data(self, method):
         return_documents = []
         # method1 dir의 모든 html을 읽어들여서 documents 리스트 생성하고 모델링 제작. 학습용 데이터의 초기 생성시 수행
-        if method == 1:
+        if method == 'make text':
             tmp_doc_list = []
             for dir_name in common.CONTENTS:
-                dir_route = common.DATA_DIR + dir_name
-                tmp_data = self.read_all_html(dir_route+'/')
+                dir_route = os.listdir(common.DATA_DIR + dir_name + '/')
+                tmp_data = self.read_all_html(target_files_route_list)
                 tmp_doc_list.append(tmp_data)
                 return_documents.append( self.text_clensing(tmp_data) )
             # clensing이 되지 않은 원본 텍스트를 저장. method2에서 읽고 필요에 맞추어 clensing하여 사용
             self.extracted_text_out(tmp_doc_list)
             return return_documents
         # method2 기존에 읽었던 html의 텍스트들을 파일로 만들어 읽어들인 후 바로 모델링으로 제작
-        elif method == 2:
+        elif method == 'read text':
             for content_name in common.CONTENTS:
                 text_route = common.TEXT_DATA_DIR+content_name+'_extract_data.txt'
                 with codecs.open(text_route,'r',encoding='utf-8') as data:
@@ -130,8 +128,4 @@ class ContentsClassifierUtils:
             return return_documents
 
 
-    # 주어진 경로의 html 파일을 읽어서 예측을 위한 텍스트 형태로 반환
-    def read_html_to_pred_text(self, inputfile_route):
-        with codecs.open(inputfile_route, 'r', encoding='utf-8') as input_file:
-            pred_text = self.text_clensing( self.text_only_from_html(input_file.read()) )
-        return pred_text
+    

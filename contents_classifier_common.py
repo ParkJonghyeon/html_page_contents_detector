@@ -6,6 +6,7 @@ from stop_words import get_stop_words
 DATA_DIR = 'data_set/contents/'
 TEXT_DATA_DIR = 'data_set/all_contents_text/'
 AUTO_LABELING_DIR = 'data_set/auto_labeling_test/'
+UNLABELED_DIR = 'data_set/unlabeled/'
 OUTPUT_TEXT_NAME = '_extract_data.txt'
 
 
@@ -31,3 +32,4 @@ ALL_STOP_WORD = DEFAULT_STOP_WORD + LANGUAGES + get_stop_words('en') + get_stop_
 
 # filtering word number
 FILTERING_WORD_NUM = 5
+KNN_NEIGHBOR = 3

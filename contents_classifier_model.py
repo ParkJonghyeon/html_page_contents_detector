@@ -12,15 +12,13 @@ import contents_classifier_common as common
 
 
 class ContentsClassifierModel:
-    def __init__(self, model_name='logistic', training_document=''):
+    def __init__(self, model_name='logistic', training_document='', knn_neighbor=common.KNN_NEIGHBOR):
         self.model_name = model_name
         self.training_document = training_document
+        self.knn_neighbor = knn_neighbor
         self.vect = TfidfVectorizer(token_pattern=r'\w+', lowercase=True, stop_words=common.ALL_STOP_WORD)
         self.X = self.vect.fit_transform(self.training_document)
         self.Y = common.CONTENTS
-        # X.todense()
-        # sentences에는 각 서비스 분류의 문서들이 포함
-        # 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
         self.model = self.make_model()
 
 
@@ -36,7 +34,7 @@ class ContentsClassifierModel:
             return_model = DecisionTreeClassifier()
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'knn':
-            return_model = KNeighborsClassifier(n_neighbors=3)
+            return_model = KNeighborsClassifier(n_neighbors=self.knn_neighbor)
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'svm':
             return_model = SVC(gamma='auto')
@@ -47,8 +45,9 @@ class ContentsClassifierModel:
         return return_model
 
 
-    def reselect_model(self, model_name):
+    def reselect_model(self, model_name, knn_neighbor=common.KNN_NEIGHBOR):
         self.model_name = model_name
+        self.knn_neighbor = knn_neighbor
         self.model = self.make_model()
 
 
@@ -62,5 +61,7 @@ class ContentsClassifierModel:
         else:
             y_pred = self.model.predict(X_pred)
         if mode == 'all':
-            shutil.copy(inputfile_route, 'data_set/auto_labeling/'+y_pred[0])
+            shutil.copy(inputfile_route, AUTO_LABELING_DIR + y_pred[0])
         return y_pred[0]
+
+
