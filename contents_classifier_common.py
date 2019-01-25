@@ -11,8 +11,12 @@ OUTPUT_TEXT_NAME = '_extract_data.txt'
 
 
 # contents name list
-CONTENTS = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
-'gamble', 'hacking_cyber_attack', 'legal', 'weapon_hitman']
+#CONTENTS = ['adult', 'bitcoin', 'black_market', 'counterfeit', 'drug', 
+#'gamble', 'hacking_cyber_attack', 'weapon_hitman', 'software_&_file_share', 'blog_&_personal_page', 'forum_&_chat_&_mail', 'cloud_server_&_hosting', 'white_market']
+CONTENTS = ['adult', 'bitcoin', 'black_market', 'gamble', 'legal']
+LEGAL_CONTENTS = ['software_&_file_share', 'blog_&_personal_page', 'forum_&_chat_&_mail', 'cloud_server_&_hosting', 'white_market']
+ILLEGAL_CONTENTS = list(set(CONTENTS) - set(LEGAL_CONTENTS))
+BLACK_MARKET_CONTENTS = ['black_market', 'counterfeit', 'drug', 'hacking_cyber_attack', 'weapon_hitman']
 
 
 # replace word list
@@ -22,7 +26,7 @@ REPLACE_WORD = ['(',')','[',']','{','}','/','|','<','>',':',',','=',
 
 # stop word list
 DEFAULT_STOP_WORD = ['co', 'com', 'org', 'www', 'net', 'onion', 
-    'php', 'html', 'txt', 'png', 'jpg', 'gif']
+    'php', 'html', 'txt', 'png', 'jpg', 'gif', 'pdf', 'username', 'password', 'id', 'pw', 'login', 'nickname']
 LANGUAGES = ['繁體中文', '中文', 'deutsch', 'čeština', 'ελληνικά', 
     'english', 'español', 'français', '日本語', 'italiano', 'magyar', 
     'nederlands', 'norsk', 'فارسی', 'العربية', 'polski', 'português', 

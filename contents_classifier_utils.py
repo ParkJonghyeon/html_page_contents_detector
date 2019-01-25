@@ -30,12 +30,13 @@ class ContentsClassifierUtils:
         metas = soup.findAll("meta")
         for meta in metas:
             if meta.get("name") in ["description", "keywords"]:
-                try:
+                if meta.has_attr("content"):
                     meta_data = meta.get("content")
-                    texts += ' ' + meta_data
-                except TypeError:
+                elif meta.has_attr("value"):
                     meta_data = meta.get("value")
-                    texts += ' ' + meta_data
+                else:
+                    meta_data = ''
+                texts += ' ' + meta_data
         # img 태그의 alt 텍스트를 통해 이미지 콘텐츠 유추
         imgs = soup.findAll("img")
         for img in imgs:
@@ -45,10 +46,15 @@ class ContentsClassifierUtils:
         return self.tokenize_and_stopword(texts)
 
 
-# 주어진 파일 경로의 html을 읽어 토큰들의 문자열로 반환
-    def read_html_to_text(self, target_file_route):
+    def read_html(self, target_file_route):
         with codecs.open(target_file_route, 'r', encoding='utf-8') as target_file:
-            return_text = self.text_clensing( self.text_only_from_html(target_file.read()) )
+            source_html = target_file.read()
+        return source_html
+
+
+    # 주어진 파일 경로의 html을 읽어 토큰들의 문자열로 반환
+    def extract_text_from_html(self, source_html):
+        return_text = self.text_clensing( self.text_only_from_html(source_html) )
         return return_text
 
 
@@ -56,7 +62,8 @@ class ContentsClassifierUtils:
     def read_all_html(self, target_files_route_list):
         total_text = ''
         for target_file in target_files_route_list:
-            total_text = total_text + self.read_html_to_text(target_file)
+            target_file_source = self.read_html(target_file)
+            total_text = total_text + self.extract_text_from_html(target_file_source)
         return total_text
 
 
@@ -112,7 +119,10 @@ class ContentsClassifierUtils:
         if method == 'make text':
             tmp_doc_list = []
             for dir_name in common.CONTENTS:
-                dir_route = os.listdir(common.DATA_DIR + dir_name + '/')
+                target_files_route_list = []
+                html_files = os.listdir(common.DATA_DIR + dir_name + '/')
+                for html_file in html_files:
+                    target_files_route_list.append(common.DATA_DIR + dir_name + '/'+html_file)
                 tmp_data = self.read_all_html(target_files_route_list)
                 tmp_doc_list.append(tmp_data)
                 return_documents.append( self.text_clensing(tmp_data) )

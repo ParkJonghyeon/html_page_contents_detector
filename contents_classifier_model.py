@@ -1,6 +1,5 @@
-import shutil
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -25,22 +24,22 @@ class ContentsClassifierModel:
     # model 생성 함수. 필요에 따라 import 후 해당 모델 생성 분기 추가
     def make_model(self):
         if self.model_name == 'logistic':
-            return_model = LogisticRegression()
+            return_model = LogisticRegression(solver = 'lbfgs', multi_class = 'multinomial', C = 0.01)
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'naive':
-            return_model = GaussianNB()
+            return_model = MultinomialNB(alpha=0.0001)
             return_model.fit(self.X.toarray(), self.Y)
         elif self.model_name == 'decision':
-            return_model = DecisionTreeClassifier()
+            return_model = DecisionTreeClassifier(splitter='random')
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'knn':
-            return_model = KNeighborsClassifier(n_neighbors=self.knn_neighbor)
+            return_model = KNeighborsClassifier(n_neighbors=1)
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'svm':
-            return_model = SVC(gamma='auto')
+            return_model = SVC(C=0.001, kernel='linear')
             return_model.fit(self.X, self.Y)
         elif self.model_name == 'random':
-            return_model = RandomForestClassifier(n_estimators=100, max_depth=20, random_state=0)
+            return_model = RandomForestClassifier(n_estimators = 3, min_samples_split = 4, random_state=1)
             return_model.fit(self.X, self.Y)
         return return_model
 
@@ -60,8 +59,6 @@ class ContentsClassifierModel:
             y_pred = self.model.predict(X_pred.toarray())
         else:
             y_pred = self.model.predict(X_pred)
-        if mode == 'all':
-            shutil.copy(inputfile_route, AUTO_LABELING_DIR + y_pred[0])
         return y_pred[0]
 
 
