@@ -1,7 +1,18 @@
 import os
+import shutil
 import contents_classifier_common as common
 import contents_classifier_utils as ccutils
 import contents_classifier_model as ccmodel
+
+
+from sklearn.metrics import classification_report,confusion_matrix
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
+import numpy as np
+from itertools import cycle
+from scipy import interp
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 # 테스트용 메소드
@@ -12,32 +23,45 @@ def testing_method(contents_name, mode):
     if mode == 'all':
         inputfile_route_list=os.listdir(common.UNLABELED_DIR)
         for idx in range(len(inputfile_route_list)):
-            inputfile_route_list[idx] = route + inputfile_route_list[idx]
+            inputfile_route_list[idx] = common.UNLABELED_DIR + inputfile_route_list[idx]
         for inputfile_route in inputfile_route_list:
-            pred_result = model.input_pred(contents_reader.read_html_to_text(inputfile_route), mode)
+            #exception page check(default page, directory page)
+            #read_html_to_text -> find unknown page
+            hs_text_data = contents_reader.extract_text_from_html( contents_reader.read_html(inputfile_route) )
+            if len(hs_text_data) > 10:
+                pred_result = model.input_pred(hs_text_data, mode)
+            else:
+                pred_result = 'unknown'
+            shutil.copy(inputfile_route, common.AUTO_LABELING_DIR + pred_result)
     else :
         route = common.DATA_DIR+contents_name+'/'
         inputfile_route_list=os.listdir(route)
         for idx in range(len(inputfile_route_list)):
             inputfile_route_list[idx] = route + inputfile_route_list[idx]
         for inputfile_route in inputfile_route_list:
-            pred_result = model.input_pred(contents_reader.read_html_to_text(inputfile_route), mode)
+            hs_text_data = contents_reader.extract_text_from_html( contents_reader.read_html(inputfile_route) )
+            pred_result = model.input_pred(hs_text_data, mode)
             if pred_result == contents_name:
+                pred_accurate += 1
+            elif pred_result in common.LEGAL_CONTENTS and contents_name in common.LEGAL_CONTENTS:
+                pred_accurate += 1
+            elif pred_result in common.BLACK_MARKET_CONTENTS and contents_name in common.BLACK_MARKET_CONTENTS:
                 pred_accurate += 1
         print(contents_name)
         print(pred_accurate)
+        print(len(inputfile_route_list))
         print(pred_accurate/len(inputfile_route_list))
 
 
 # 모델 생성 및 예측을 위한 텍스트 리더
-contents_reader = ccutils.ContentsClassifierUtils(filtering_word_num = 5)
+contents_reader = ccutils.ContentsClassifierUtils(filtering_word_num = 4)
 #documents = contents_reader.read_text_data('make text')
 documents = contents_reader.read_text_data('read text')
 
 
 # 모델의 생성
 model_names = ['logistic', 'naive', 'decision', 'svm', 'random']
-model = ccmodel.ContentsClassifierModel(model_names[0], documents)
+model = ccmodel.ContentsClassifierModel(model_names[3], documents)
 #model.reselect_model(model_names[1])
 
 
@@ -50,57 +74,8 @@ for cont_name in common.CONTENTS:
 for cont_name in common.CONTENTS:
     os.mkdir(common.AUTO_LABELING_DIR+cont_name)
 
+
+os.mkdir(common.AUTO_LABELING_DIR+'unknown')
+
 testing_method(common.CONTENTS, 'all')
 
-
-LABELED_HTML = {}
-
-for cont_name in common.CONTENTS:
-    tmp = os.listdir(cont_name)
-    for key in tmp:
-        LABELED_HTML[common.DATA_DIR+cont_name+'/'+key]=cont_name
-
-TRAINING_DATA_LIST = []
-
-
-'''def read_text_data_for_training(read_file_num):
-    return_documents = []
-    tmp_doc_list = []
-    for dir_name in common.CONTENTS:
-        dir_route = common.DATA_DIR + dir_name
-        tmp_data = read_training_html(dir_route+'/', read_file_num)
-        tmp_doc_list.append(tmp_data)
-        return_documents.append( text_clensing(tmp_data, FILTERING_WORD_NUM) )
-    # clensing이 되지 않은 원본 텍스트를 저장. method2에서 읽고 필요에 맞추어 clensing하여 사용
-    contents_reader.extracted_text_out(tmp_doc_list)
-    return return_documents
-
-
-def read_training_html(dir_route, read_file_num):
-    file_list = os.listdir(dir_route)
-    total_text = ''
-    for training_data in file_list[read_file_num:]:
-        TRAINING_DATA_LIST.append(training_data)
-    for file_name in file_list[:read_file_num]:
-        with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
-            total_text = total_text + text_only_from_html(html_text.read())
-    return total_text
-
-
-documents = read_text_data_for_training(15)
-
-vect = TfidfVectorizer(token_pattern=r'\w+', lowercase=True, stop_words=common.ALL_STOP_WORD)
-X = vect.fit_transform(documents)
-# X.todense()
-# sentences에는 각 서비스 분류의 문서들이 포함
-# 하나의 카테고리하에 3-4종류의 html 문서가 하나로 통합 된 것 한개씩?
-Y = common.CONTENTS
-
-USE_MODEL = 'logistic'
-#USE_MODEL = 'naive'
-#USE_MODEL = 'decision'
-#USE_MODEL = 'svm'
-#USE_MODEL = 'random'
-KNN_NEIGHBOR = 3
-model = make_model(X,Y)
-'''
