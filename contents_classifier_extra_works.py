@@ -1,138 +1,16 @@
-'''
-LABELED_HTML = {}
-for cont_name in common.CONTENTS:
-    cont_val = cont_name
-    if cont_val in common.BLACK_MARKET_CONTENTS:
-        cont_val = 'black_market'
-    elif cont_val in common.LEGAL_CONTENTS:
-        cont_val = 'legal'
-    tmp = os.listdir(common.DATA_DIR+cont_name)
-    for key in tmp:
-        LABELED_HTML[common.DATA_DIR+cont_name+'/'+key]=cont_val
+#required packages
+from sklearn.metrics import classification_report,confusion_matrix
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
+import numpy as np
+from itertools import cycle
+from scipy import interp
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# contents_classifier.py 에서 사용하던 각종 테스트 코드들
 
 
-ORIG_HTML = {}
-for cont_name in common.CONTENTS:
-    cont_val = cont_name
-    tmp = os.listdir(common.DATA_DIR+cont_name)
-    for key in tmp:
-        ORIG_HTML[common.DATA_DIR+cont_name+'/'+key]=cont_val
-
-
-TEST_DATA_LIST = []
-
-
-#all data use test data. if not pass this for
-#for dir_name in common.CONTENTS:
-#	dir_route = common.DATA_DIR + dir_name + '/'
-#	file_list = os.listdir(dir_route)
-#	for training_data in file_list:
-#		TEST_DATA_LIST.append(dir_route+training_data)
-
-
-#contents_reader = ccutils.ContentsClassifierUtils(filtering_word_num = 4)
-#documents = contents_reader.read_text_data('read text')
-
-
-contents_reader = ccutils.ContentsClassifierUtils(filtering_word_num = 4)
-import codecs
-import random
-
-def read_text_data_for_training(read_file_num):
-    return_documents = []
-    tmp_doc_list = []
-    for dir_name in common.CONTENTS:
-        dir_route = common.DATA_DIR + dir_name
-        tmp_data = read_training_html(dir_route+'/', read_file_num)
-        tmp_doc_list.append(tmp_data)
-        return_documents.append( contents_reader.text_clensing(tmp_data) )
-    # clensing이 되지 않은 원본 텍스트를 저장. method2에서 읽고 필요에 맞추어 clensing하여 사용
-    contents_reader.extracted_text_out(tmp_doc_list)
-    return return_documents
-
-
-def read_training_html(dir_route, read_file_num):
-    file_list = os.listdir(dir_route)
-    random.shuffle(file_list)
-    read_file_num = int(len(file_list)*0.85)
-    total_text = ''
-    for training_data in file_list[read_file_num:]:
-        TEST_DATA_LIST.append(dir_route+training_data)
-    for file_name in file_list[:read_file_num]:
-        with codecs.open(dir_route+file_name,'r', encoding='utf-8') as html_text:
-            total_text = total_text + contents_reader.text_only_from_html(html_text.read())
-    return total_text
-
-
-def cal_precision():
-    aver_pre=0
-    for con in ['adult', 'bitcoin', 'black_market', 'gamble', 'hacking_cyber_attack', 'weapon_hitman', 'legal']:
-        print('category : '+con)
-        print((TP[con])/(TP[con]+FP[con]))
-        aver_pre += (TP[con])/(TP[con]+FP[con])
-    return aver_pre/7
-
-
-def cal_recall():
-    aver_recall=0
-    for con in ['adult', 'bitcoin', 'black_market', 'gamble', 'hacking_cyber_attack', 'weapon_hitman', 'legal']:
-        print('category : '+con)
-        print((TP[con])/(TP[con]+FN[con]))
-        aver_recall += (TP[con])/(TP[con]+FN[con])
-    return aver_recall/7
-
-
-TEST_DATA_LIST = []
-documents = read_text_data_for_training(15)
-#model_names = ['logistic', 'naive', 'svm', 'knn', 'decision', 'random']
-model_names = ['logistic', 'svm', 'naive']
-TP = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-FP = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-#TN = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-FN = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-
-documents[0] = documents[0].replace('post','').replace('topic','').replace('magnet','').replace('online','').replace('chat','').replace('site','').replace('update','').replace('download','').replace('forum','').replace('community','').replace('support','')
-documents[5] = documents[5].replace('account','').replace('mastercard','').replace('register','').replace('paypal','').replace('online','').replace('program','').replace('proxy','').replace('bitcoin','').replace('download','').replace('system','')
-documents[6] = documents[6].replace('facebook','').replace('post','').replace('social','').replace('media','').replace('website','').replace('topic','').replace('people','').replace('person','').replace('search','').replace('online','').replace('database','').replace('service','')
-documents[9] = documents[9].replace('video','').replace('media','').replace('porn','').replace('girl','').replace('pédo','').replace('pedo','').replace('search','').replace('shop','')
-documents[10] = documents[10].replace('video','').replace('media','').replace('porn','').replace('girl','').replace('pédo','').replace('pedo','').replace('service','').replace('information','').replace('admin','').replace('search','').replace('shop','').replace('child','')
-
-for index in range(len(documents)):
-    if index == 1:
-        documents[index] = contents_reader.text_clensing(documents[index].replace('bitcoins','').replace('bitcoin','').replace('btc',''))
-    else:
-        documents[index] = contents_reader.text_clensing(documents[index])
-
-#hacking 문서의 특징이 없는지 legal을 해킹으로 분류하고 있음. legal이 스스로를 제대로 분류할 수 있으면 해결 될 듯
-
-for i in range(len(model_names)):
-    TP = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-    FP = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-    #TN = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-    FN = {'adult':0, 'bitcoin':0, 'black_market':0, 'gamble':0, 'hacking_cyber_attack':0, 'weapon_hitman':0, 'legal':0}
-    model = ccmodel.ContentsClassifierModel(model_names[i], documents)
-    for testfile in TEST_DATA_LIST:
-        pred_result = model.input_pred(contents_reader.extract_text_from_html( contents_reader.read_html(testfile) ), "single")
-        tmp_orig_result = pred_result
-        if pred_result in common.BLACK_MARKET_CONTENTS:
-            pred_result = 'black_market'
-        elif pred_result in common.LEGAL_CONTENTS:
-            pred_result = 'legal'
-        if pred_result == LABELED_HTML[testfile]:
-            TP[LABELED_HTML[testfile]] += 1
-        else:
-            print(ORIG_HTML[testfile]+' is predicted '+tmp_orig_result)
-            FN[LABELED_HTML[testfile]] += 1
-            FP[pred_result] += 1
-    print(model_names[i])		
-    print('Precision')
-    print(cal_precision())
-    print('Recall')
-    print(cal_recall())
-    print('\n')
-
-
-###################################################3
 
 onion_cont_dict = {}
 contents_count = {}
@@ -157,9 +35,10 @@ for html_f in input_files:
         onion_cont_dict[onion_add] = contents
 
 
+####################################################################################
 
+# ROC-AUC 측정 코드
 
-###############################################################
 
 LABELED_HTML = {}
 for cont_name in common.CONTENTS:
@@ -347,6 +226,10 @@ plt.show()
         plt.show()
 
 
+####################################################################################
+
+
+# hyper parameter 성능 비교 코드
 
 
 from sklearn.model_selection import GridSearchCV
@@ -424,4 +307,3 @@ logi.fit(model.X, model.Y)
 predict_data_label = logi.predict(X_test)
 print(classification_report(test_data_label,predict_data_label))
 
-'''

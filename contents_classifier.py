@@ -5,16 +5,6 @@ import contents_classifier_utils as ccutils
 import contents_classifier_model as ccmodel
 
 
-from sklearn.metrics import classification_report,confusion_matrix
-from sklearn.metrics import roc_curve, auc
-from sklearn.preprocessing import label_binarize
-import matplotlib.pyplot as plt
-import numpy as np
-from itertools import cycle
-from scipy import interp
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-
 # 테스트용 메소드
 # 정확도 측정을 위한 카운트는 이 함수에서 카운트해야함
 # 모델의 결과값은 예측한 컨텐츠결과만을 반환하므로 정답과 대조하여 어떤 유형의 정답/오답인지 카운트해야함
@@ -53,6 +43,20 @@ def testing_method(contents_name, mode):
         print(pred_accurate/len(inputfile_route_list))
 
 
+#test all labeled html
+def test_one_category():
+    for cont_name in common.CONTENTS:
+        testing_method(cont_name, 'single')
+
+
+#test all unlabeled html
+def test_all_category():
+    for cont_name in common.CONTENTS:
+        os.mkdir(common.AUTO_LABELING_DIR+cont_name)
+    os.mkdir(common.AUTO_LABELING_DIR+'unknown')
+    testing_method(common.CONTENTS, 'all')
+
+
 # 모델 생성 및 예측을 위한 텍스트 리더
 contents_reader = ccutils.ContentsClassifierUtils(filtering_word_num = 4)
 #documents = contents_reader.read_text_data('make text')
@@ -65,17 +69,6 @@ model = ccmodel.ContentsClassifierModel(model_names[3], documents)
 #model.reselect_model(model_names[1])
 
 
-#test all labeled html
-for cont_name in common.CONTENTS:
-    testing_method(cont_name, 'single')
-
-
-#test all unlabeled html
-for cont_name in common.CONTENTS:
-    os.mkdir(common.AUTO_LABELING_DIR+cont_name)
-
-
-os.mkdir(common.AUTO_LABELING_DIR+'unknown')
-
-testing_method(common.CONTENTS, 'all')
+#test_one_category()
+test_all_category()
 
